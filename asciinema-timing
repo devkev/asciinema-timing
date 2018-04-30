@@ -1,0 +1,49 @@
+#!/usr/bin/python3
+
+import sys
+import argparse
+import json
+
+def positive_float(value):
+	value = float(value)
+	if value <= 0.0:
+		raise argparse.ArgumentTypeError("must be positive")
+	return value
+
+parser = argparse.ArgumentParser(
+	description='Adjust the timings in asciicasts'
+)
+
+parser.add_argument('-i', '--idle-time-limit',
+                    help='limit idle time during playback to given number of seconds',
+                    action="store",
+                    type=positive_float,
+                    )
+
+parser.add_argument('filenames',
+                    action="append",
+                    default=[],
+                    )
+
+opts = parser.parse_args()
+
+last_time = 0.0
+current_time = 0.0
+for filename in opts.filenames:
+	with open(filename) as f:
+		for line in f:
+			if opts.idle_time_limit != None:
+				j = json.loads(line)
+				if isinstance(j, list):
+					this_time = j[0]
+					delta = min(this_time - last_time, opts.idle_time_limit)
+					current_time += delta
+					j[0] = current_time
+					last_time = this_time
+					print(json.dumps(j))
+				else:
+					print(line, end='')
+			else:
+				print(line, end='')
+
+
